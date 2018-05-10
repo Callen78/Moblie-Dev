@@ -1,151 +1,63 @@
-package com.example.ceocarlallen.recorder
+package android.matt.colorpicker3
 
-
-import android.Manifest
-import android.content.pm.PackageManager
-import android.media.MediaPlayer
-import android.media.MediaRecorder
-import android.os.Build
-import android.os.Environment
-import android.support.v4.app.ActivityCompat
-import android.support.v7.app.AppCompatActivity
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.view.Menu
+import android.support.v4.graphics.ColorUtils
+import android.support.v7.app.AppCompatActivity
 import android.view.View
-import android.widget.Button
-import android.widget.Toast
-import java.io.IOException
+import android.widget.SeekBar
+import kotlinx.android.synthetic.main.activity_main.*
 
-
-class MainActivity<Throws> : AppCompatActivity(), View.OnClickListener {
-    //global variables
-    private var myAudioRecorder: MediaRecorder? = null
-    private var output: String? = null
-    private var start: Button? = null
-    private var stop: Button? = null
-    private var play: Button? = null
-
-
-    private var permissionToRecordAccepted = false
-    private var permissionToWriteAccepted = false
-    private val permissions = arrayOf("android.permission.RECORD_AUDIO", "android.permission.WRITE_EXTERNAL_STORAGE")
+class MainActivity : AppCompatActivity() {
+    var blendedColor: Int = 0
+    var colorOne: Int = 0
+    var colorTwo: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        //Had to request for code
-        val requestCode = 200
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            requestPermissions(permissions, requestCode)
-        }
-
-        //creates variables for buttons
-        start = findViewById(R.id.button1) as Button
-        stop = findViewById(R.id.button2) as Button
-        play = findViewById(R.id.button3) as Button
-
-
-        //sets listners for button
-        start!!.setOnClickListener(this)
-        stop!!.setOnClickListener(this)
-        play!!.setOnClickListener(this)
-
-
-        //to get buttons to dislay one at a times
-        stop!!.isEnabled = false
-        play!!.isEnabled = false
-
-        output = Environment.getExternalStorageDirectory().absolutePath + "/myrecording.3gp"
-
-
-        myAudioRecorder = MediaRecorder()
-        myAudioRecorder!!.setAudioSource(MediaRecorder.AudioSource.MIC)
-        myAudioRecorder!!.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-        myAudioRecorder!!.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB)
-        myAudioRecorder!!.setOutputFile(output)
-
-    }
-
-    override fun onClick(v: View) {
-
-        when (v.id) {
-
-            R.id.button1 -> start(v)
-            R.id.button2 -> stop(v)
-            R.id.button3 -> try {
-                play(v)
-            } catch (e: IOException) {
-                Log.i("IOException", "Error in play")
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                blendColor(progress / 100f)
             }
-
-            else -> {
-            }
-        }
-
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 
-    //method that gets permission
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
-                                            grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            200 -> {
-                permissionToRecordAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED
-                permissionToWriteAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED
-            }
-        }
-        if (!permissionToRecordAccepted) super@MainActivity.finish()
-        if (!permissionToWriteAccepted) super@MainActivity.finish()
-
-
+    fun blendColor(percentage: Float) {
+        blendedColor = ColorUtils.blendARGB(colorOne, colorTwo, percentage)
+        surfaceView.setBackgroundColor(blendedColor)
     }
 
-
-//start function to start the recording
-    fun start(view: View) {
-        try {
-            myAudioRecorder!!.prepare()
-            myAudioRecorder!!.start()
-        } catch (e: IllegalStateException) {
-            e.printStackTrace()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-
-        start!!.isEnabled = false
-        stop!!.isEnabled = true
-        Toast.makeText(applicationContext, "Recording started", Toast.LENGTH_SHORT).show()
+    fun sendIntent(view : View, requestCode: Int, extras: String){
+        val launchColorPicker = packageManager.getLaunchIntentForPackage("com.example.hamzakhokhar.colorpicker")  as Intent
+        val intent = Intent()
+        intent.action = Intent.ACTION_VIEW
+        intent.putExtra(extras,requestCode)
+        startActivityForResult(intent, requestCode)
     }
 
-    fun stop(view: View) {
-        myAudioRecorder!!.stop()
-        myAudioRecorder!!.release()
-        myAudioRecorder = null
-        stop!!.isEnabled = false
-        play!!.isEnabled = true
-        Toast.makeText(applicationContext, "Audio recorded successfully", Toast.LENGTH_SHORT).show()
-
+    fun firstColor (view : View){
+        sendIntent(view, 1, "ColorOne")
     }
 
-
-    //  @Throws(IllegalArgumentException::class, SecurityException::class, IllegalStateException::class, IOException::class)
-    fun play(view: View) {
-        val m = MediaPlayer()
-        try {
-            m.setDataSource(output)
-            m.prepare()
-            m.start()
-        }
-        finally {
-            Toast.makeText(applicationContext, "Playing audio", Toast.LENGTH_SHORT).show()
-        }
+    fun secondColor(view : View){
+        sendIntent(view, 2, "ColorTwo")
     }
 
-    companion object {
-        val RECORD_AUDIO = 0
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == 1 && resultCode == Activity.RESULT_OK && data?.extras != null){
+            colorOne = data!!.getIntExtra("Color", 0)
+            colorA.setBackgroundColor(colorOne)
+        }
+        if (requestCode == 2 && resultCode == Activity.RESULT_OK && data?.extras != null){
+            colorTwo = data!!.getIntExtra("Color", 0)
+            colorB.setBackgroundColor(colorTwo)
+        }
     }
 }
 
