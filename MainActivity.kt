@@ -1,4 +1,4 @@
-package android.matt.colorpicker3
+package android.ceocarlallen.colorpicker3
 
 import android.app.Activity
 import android.content.Intent
